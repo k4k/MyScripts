@@ -1,0 +1,113 @@
+#!/bin/bash
+#
+# Automates the process of registering an IPA client (so we don't have to
+# remember the commands)
+#
+# Author:   Ted Wood (twood8)
+# Date:     2014-04-29
+
+# Change these if necessary
+IPASERVER="<%= @ipaserver %>"
+DOMAIN="<%= @ipadomain %>"
+## ENTER ONLY FILE NAME BELOW. PATH DETERMINED BASED ON $OS_VER
+CACERT_FILE="<%= @CA %>"
+
+SELINUX_STATE=$(getenforce)
+
+if [ ! -z $1 ] && [ ! -z $2 ]; then
+  PRINC_NAME="$1"
+  PRINC_PASS="$2"
+fi
+
+cr=`echo $'\n.'`  # ugly newline hack for the `read` lines below
+cr=${cr%.}        # more ugly hackness
+
+read -rep "You are about to configure this system to authenticate off ${IPASERVER}${cr}Press [Enter] if you wish to continue or Ctrl-C to cancel..."
+
+if [[ $(echo $UID) != 0 ]]; then
+  echo "You must run this as root"
+  exit 99
+fi
+# Determine OS Distribution
+if [ -f /etc/redhat-release ]; then
+  if grep Fedora /etc/redhat-release; then
+    OS_VER="fedora"
+  elif grep "Red Hat" /etc/redhat-release || grep "CentOS" /etc/redhat-release; then
+    OS_VER="redhat"
+  else
+    OS_VER="none"
+  fi
+elif [ -f /usr/bin/lsb_release ]; then
+  FULL_VER=$(lsb_release -a)
+  if echo $FULL_VER | grep -i ubuntu; then
+    OS_VER="ubuntu"
+    if echo $FULL_VER | grep -i "12.*"; then
+      OS_SUB_VER="12"
+    elif echo $FULL_VER | grep -i "14.*"; then
+      OS_SUB_VER="14"
+    fi
+  else
+    OS_VER="none"
+  fi
+else
+  OS_VER="none"
+fi
+
+# Determine path for CACERTS
+if [ "$OS_VER" == "fedora" ] || [ "$OS_VER" == "redhat" ]; then
+  CERT_PATH="/etc/pki/tls/certs/"
+elif [ "$OS_VER" == "ubuntu" ]; then
+  CERT_PATH="/etc/ssl/certs/"
+fi
+
+# Backup old sssd.conf if it exists
+if [ -f /etc/sssd/sssd.conf ]; then
+  mv /etc/sssd/sssd.conf /etc/sssd/sssd.conf.bak
+fi
+
+# Check if ipa-client package installed
+if [ "$OS_VER" == "fedora" ]; then
+  echo "Installing freeipa-client and freeipa-admintools packages"
+  yum install freeipa-client freeipa-admintools -y -q
+elif [ "$OS_VER" == "redhat" ]; then
+  echo "Installing ipa-client and ipa-admintools packages"
+  yum install ipa-client ipa-admintools -y -q
+elif [ "$OS_VER" == "ubuntu" ]; then
+  echo "Installing freeipa-client package"
+  apt-get install -y freeipa-client
+elif [ "$OS_VER" == "none" ]; then
+  echo -e "Unable to determine OS version, please install the equivalent ipa-client and ipa-admintools packages for your distribution and configure IPA manually"
+  exit 99
+fi
+
+# If Redhat or Fedora turn off SELinux temporarily
+if [ "$OS_VER" == "fedora" ] || [ "$OS_VER" == "redhat" ]; then
+  if [ "$SELINUX_STATE" == "Enforcing" ]; then
+      echo "Temporarily disabling SELinux"
+      setenforce 0
+  fi
+fi
+
+# Configure IPA client
+read -t 10 -p "Beginning IPA configuration....${cr}Answer "Y" to the first two questions and log in with administrative credentials when prompted.${cr}${cr}Press [Enter] to continue..."
+if [ "$OS_VER" == "fedora" ] || [ "$OS_VER" == "redhat" ]; then
+  if [ ! -z $PRINC_NAME ] && [ ! -z $PRINC_PASS ]; then
+    ipa-client-install --server=${IPASERVER} --domain=${DOMAIN} --ca-cert-file=${CERT_PATH}${CACERT_FILE} --principal=${PRINC_NAME} --password=${PRINC_PASS} --unattended --fixed-primary
+  else
+    ipa-client-install --server=${IPASERVER} --domain=${DOMAIN} --ca-cert-file=${CERT_PATH}${CACERT_FILE} --fixed-primary
+  fi
+elif [ "$OS_VER" == "ubuntu" ]; then
+  if [ "$OS_SUB_VER" == "12" ]; then
+    ipa-client-install --server=${IPASERVER} --domain=${DOMAIN}
+  else
+    ipa-client-install --server=${IPASERVER} --domain=${DOMAIN} --ca-cert-file=${CERT_PATH}${CACERT_FILE} --fixed-primary
+  fi
+fi
+# If Redhat or Fedora turn on SELinux
+if [ "$OS_VER" == "fedora" ] || [ "$OS_VER" == "redhat" ]; then
+  if [ "$SELINUX_STATE" == "Enforcing" ]; then
+    echo "Re-enabling SELinux"
+    setenforce 1
+  fi
+fi
+exit 0
