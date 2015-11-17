@@ -5,11 +5,9 @@
 # the results into information to be inserted into /etc/motd
 #
 
-# Delete the old MOTD file if it exists
-if [ -a motd ]
-  then
-    rm -Rf motd
-fi
+# Output File (default is /etc/motd)
+out_file="/etc/motd"
+
 
 echo "-------------------------------------------------------------------------------
 
@@ -21,4 +19,4 @@ CPU:            Intel(R) Xeon(R) CPU            3060  @ 2.40GHz
 Memory		$(free -m | grep Mem: | awk '{print $3"/"$2}') MB
 Users:		$(uptime | cut -d, -f3)
 System $(sar | tail -n 1)
--------------------------------------------------------------------------------" > motd.txt
+-------------------------------------------------------------------------------" > $out_file
