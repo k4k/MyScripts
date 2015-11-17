@@ -5,14 +5,40 @@
 ##
 ## Author: Ted Wod
 ## Date: 2012-12-05
+## Last Updated: 2015-11-17
 
-if [ -z $1 ] || [ -z $2 ]; then
-    echo -e "Point link to new location"
-    echo -e "Usage:\n\tlnmv link_name new_location"
-    exit 1
+usage() {
+	echo -e "Point link to new location"
+	echo -e "Usage:\n\tlnmv link_name new_location"
+	exit 1
+}
+
+undo() {
+	mv $temp $old
+}
+
+cleanup() {
+	rm $temp
+}
+
+if [ $# -lt 2 ]; then
+	usage
 fi
 
-temp="$1.`date +%N`"
-mv $1 $temp
-ln -s $2 $1
-rm $temp
+old="$1"
+new="$2"
+temp="${old}.${RANDOM}"
+mv $old $temp
+if [ ! -f $new ] && [ ! -d $new ]; then
+	ln -s $new $old > /dev/null 2>&1
+	if [ "$?" != "0" ]; then
+		echo "Moving symlink failed. Reverting..."
+		undo
+		exit 2
+	fi
+else
+	echo "$new exists, please choose a different location to move symlink"
+	undo
+	exit 3
+fi
+cleanup
