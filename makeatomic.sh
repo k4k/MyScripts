@@ -152,8 +152,8 @@ chpasswd: { expire: False }
 ssh_pwauth: True
 ## SSH keys aren't working for some reason. They're commented out until I can
 ## figure out why it breaks everything.
-#ssh_authorized_keys:
-#	- \".......\"
+ssh_authorized_keys:
+  - \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBUJOv/gB++1OAM79vy+7ZwnZ2G4h+CjoLNS+AKO9t6V elw@mbp\"
 "
 
 _METADATA="
