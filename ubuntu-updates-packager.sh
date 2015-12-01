@@ -20,19 +20,19 @@ outfile="${code_name}_updates.tar.gz"
 outpath="${repo_path}"
 sumsfile="$tmp/repo_sums"
 
-if ! -d $repo_path; then
+if [ ! -d $repo_path ]; then
 	echo "The path you have set for \$repo_path is not valid"
 	exit 1
 fi
 
-if ! -d $repo_path/$code_name; then
+if [ ! -d $repo_path/$code_name ]; then
 	echo "You do not have a repo available in $code_name in $repo_path"
 	exit 2
 fi
 
-if ! -d $tmp; then
+if [ ! -d $tmp ]; then
 	mkdir $tmp
-	if $? -ne 0; then
+	if [ $? -ne 0 ]; then
 		echo "$tmp directory does not exist and attempts to create it have failed..."
 		exit 3
 	fi
