@@ -40,7 +40,7 @@ fi
 
 cd $repo_path
 
-if -f $sumsfile; then
+if [ -f $sumsfile ]; then
 	mv $sumsfile ${sumsfile}.bak
 fi
 
