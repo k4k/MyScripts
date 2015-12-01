@@ -47,7 +47,9 @@ fi
 find $dir_list -type f -exec md5sum {} \; >> $sumsfile
 if [ -f ${sumsfile}.bak ]; then
 	difflist=$(diff -c $sumsfile ${sumsfile}.bak | awk '/\!/ && /\+/ {print $3}' | tr -d '()' | tr ' ' '\n'|sort -u|tr '\n' ' ')
-	tar -czvf ${outpath}/${outfile} ${difflist}
+	if [ ! -z $difflist ]; then
+		tar -czvf ${outpath}/${outfile} ${difflist}
+	fi
 else
 	echo "Unable to create diff or tarball. Is this your first time running the script?"
 	exit 4
